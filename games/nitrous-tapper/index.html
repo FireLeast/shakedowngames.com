@@ -1,0 +1,1612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nitrous Tapper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&family=Rubik:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#150f24;
+    --ink-2:#1e1636;
+    --ink-3:#2a1f4d;
+    --paper:#f5ecd9;
+    --paper-dim:#c9bfa8;
+    --acid:#d6f83c;
+    --magenta:#ff3fa4;
+    --cyan:#3ce1ff;
+    --amber:#ffb347;
+    --violet:#b388ff;
+    --line:rgba(245,236,217,0.16);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Rubik',system-ui,sans-serif;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:28px 14px 40px;
+  }
+  .stage{
+    position:relative;
+    width:100%;
+    max-width:960px;
+    isolation:isolate;
+  }
+  .stage::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(255,63,164,0.20), transparent 40%),
+      radial-gradient(circle at 50% 18%, rgba(60,225,255,0.14), transparent 58%),
+      radial-gradient(circle at 50% 18%, rgba(214,248,60,0.10), transparent 72%),
+      var(--ink);
+    animation: swirl 60s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .stage::before{ animation:none; }
+  }
+  @keyframes swirl{
+    0%{ filter:hue-rotate(0deg); }
+    100%{ filter:hue-rotate(360deg); }
+  }
+
+  .cabinet{
+    position:relative;
+    background:linear-gradient(180deg,var(--ink-3),var(--ink-2) 60%);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:20px 20px 24px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+
+  .bunting{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    height:20px;
+    margin:-2px 4px 16px;
+  }
+  .bunting::before{
+    content:"";
+    position:absolute;
+    left:0; right:0; top:5px;
+    height:1px;
+    background:var(--line);
+  }
+  .bunting .flag{
+    width:13px;
+    height:15px;
+    clip-path:polygon(0 0, 100% 0, 50% 100%);
+    margin-top:1px;
+  }
+
+  .marquee{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    padding:2px 6px 18px;
+    border-bottom:1px dashed var(--line);
+    margin-bottom:16px;
+  }
+  .title-block{ display:flex; flex-direction:column; gap:4px; }
+  .kicker{
+    font-family:'Rubik',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--cyan);
+  }
+  h1{
+    margin:0;
+    font-family:'Bungee Shade','Bungee',system-ui,sans-serif;
+    font-size:clamp(28px,5.4vw,46px);
+    line-height:1;
+    color:var(--acid);
+    text-shadow:2px 2px 0 rgba(255,63,164,0.55), 4px 4px 0 rgba(0,0,0,0.35);
+    letter-spacing:.01em;
+    text-wrap:balance;
+  }
+  .subtitle{
+    margin:0;
+    font-size:13px;
+    color:var(--paper-dim);
+    max-width:46ch;
+  }
+
+  .hud{
+    display:flex;
+    align-items:center;
+    gap:22px;
+    flex-wrap:wrap;
+  }
+  .hud-item{ display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+  .hud-label{
+    font-family:'Rubik',sans-serif;
+    font-size:10px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--paper-dim);
+  }
+  .hud-value{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:22px;
+    font-variant-numeric:tabular-nums;
+    color:var(--paper);
+  }
+  .hud-value.wave{ color:var(--amber); }
+  .lives{ display:flex; gap:5px; }
+  .life-tank{ display:block; transition:opacity .25s ease, filter .25s ease; }
+  .life-tank.spent{ opacity:.22; filter:grayscale(1); }
+
+  .screen{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow:inset 0 0 0 6px rgba(0,0,0,0.35), inset 0 0 40px rgba(0,0,0,0.5);
+    aspect-ratio:880/520;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+  .scanlines{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(180deg, rgba(0,0,0,0.16) 0px, rgba(0,0,0,0.16) 1px, transparent 2px, transparent 4px);
+    mix-blend-mode:multiply;
+    opacity:.5;
+  }
+  .vignette{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    box-shadow:inset 0 0 90px 30px rgba(0,0,0,0.65);
+  }
+
+  .overlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background:rgba(21,15,36,0.86);
+    backdrop-filter:blur(1px);
+    padding:20px;
+  }
+  .overlay[hidden]{ display:none; }
+  .overlay-inner{ max-width:440px; display:flex; flex-direction:column; gap:14px; align-items:center; }
+  .overlay h2{
+    margin:0;
+    font-family:'Bungee Shade','Bungee',sans-serif;
+    font-size:clamp(22px,5vw,32px);
+    color:var(--magenta);
+    text-shadow:2px 2px 0 rgba(60,225,255,0.4);
+    text-wrap:balance;
+  }
+  .overlay p{ margin:0; font-size:13.5px; line-height:1.55; color:var(--paper-dim); }
+  .howto{
+    text-align:left;
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--paper);
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 16px;
+  }
+  .howto b{ color:var(--acid); font-family:'Space Mono',monospace; }
+  .score-recap{ font-family:'Space Mono',monospace; font-size:14px; color:var(--paper); }
+  .score-recap .big{ font-size:30px; color:var(--acid); display:block; font-weight:700; }
+  .go-btn{
+    font-family:'Bungee',sans-serif;
+    font-size:13px;
+    letter-spacing:.06em;
+    color:var(--ink);
+    background:var(--acid);
+    border:none;
+    border-radius:999px;
+    padding:12px 26px;
+    cursor:pointer;
+    box-shadow:0 6px 0 rgba(0,0,0,0.35);
+    transition:transform .12s ease;
+  }
+  .go-btn:hover{ transform:translateY(-2px); }
+  .go-btn:active{ transform:translateY(1px); box-shadow:0 3px 0 rgba(0,0,0,0.35); }
+  .go-btn:focus-visible{ outline:3px solid var(--cyan); outline-offset:3px; }
+  .blink{ animation:blink 1.1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:.25; } }
+  @media (prefers-reduced-motion: reduce){ .blink{ animation:none; } }
+
+  .toast{
+    position:absolute;
+    top:14px; left:50%;
+    transform:translate(-50%,-14px);
+    font-family:'Bungee',sans-serif;
+    font-size:12px;
+    letter-spacing:.05em;
+    color:var(--ink);
+    background:var(--amber);
+    padding:7px 16px;
+    border-radius:999px;
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  .controls{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+  }
+  .key-legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--paper-dim); }
+  .key-legend kbd{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    background:var(--ink);
+    border:1px solid var(--line);
+    border-bottom-width:2px;
+    border-radius:5px;
+    padding:2px 6px;
+    color:var(--paper);
+    margin-right:4px;
+  }
+  .pad{ display:flex; gap:8px; }
+  .pad-btn{
+    width:46px; height:46px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--ink-3);
+    color:var(--paper);
+    font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  .pad-btn:active{ background:var(--ink); }
+  .pad-btn:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+  .pad-btn.go{
+    width:auto; padding:0 18px;
+    font-family:'Bungee',sans-serif;
+    font-size:12px;
+    color:var(--ink);
+    background:var(--magenta);
+    border-color:transparent;
+  }
+
+  footer{
+    text-align:center;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:rgba(245,236,217,0.35);
+    margin-top:18px;
+  }
+
+  @media (max-width:640px){
+    .marquee{ align-items:flex-start; }
+    .hud{ gap:14px; }
+    .hud-value{ font-size:18px; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="tankGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9aa6ad"/>
+      <stop offset="45%" stop-color="#e7edf1"/>
+      <stop offset="100%" stop-color="#8b969e"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="stage">
+  <div class="cabinet">
+    <div class="bunting" id="bunting" aria-hidden="true"></div>
+    <div class="marquee">
+      <div class="title-block">
+        <span class="kicker">Shakedown Lot &middot; Vendor Sim &middot; Arcade</span>
+        <h1>Nitrous Tapper</h1>
+        <p class="subtitle">Fill &amp; float balloons down Shakedown row before the dreadlocked masses reach your tanks.</p>
+      </div>
+      <div class="hud">
+        <div class="hud-item">
+          <span class="hud-label">Score</span>
+          <span class="hud-value" id="hudScore">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Wave</span>
+          <span class="hud-value wave" id="hudWave">1</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Tanks</span>
+          <span class="lives" id="hudLives"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <canvas id="game" width="880" height="520"></canvas>
+      <div class="scanlines"></div>
+      <div class="vignette"></div>
+      <div class="toast" id="toast"></div>
+
+      <div class="overlay" id="titleOverlay">
+        <div class="overlay-inner">
+          <h2>Nitrous Tapper</h2>
+          <p>You run the tank stand at the far end of the lot. Fans wander in wanting a balloon &mdash; keep them floating, or they'll crowd your tanks and you'll lose one.</p>
+          <div class="howto">
+            <div><b>&uarr; &darr;</b> or <b>W / S</b> &mdash; move between the 4 lanes</div>
+            <div><b>Space</b> &mdash; launch a balloon down your lane</div>
+            <div>Catch each hippie before they reach your stand. Clear waves to speed up the crowd.</div>
+            <div>Watch for <b style="color:var(--cyan)">cops</b> in navy &mdash; float one a balloon and you'll get busted. Let them walk on by instead.</div>
+          </div>
+          <button class="go-btn blink" id="startBtn">Press Space to Start</button>
+          <p id="titleHigh" style="font-family:'Space Mono',monospace;"></p>
+        </div>
+      </div>
+
+      <div class="overlay" id="gameOverOverlay" hidden>
+        <div class="overlay-inner">
+          <h2 id="goHeadline">Bummer, Man</h2>
+          <p>The lot rushed the stand. Pack up the tanks.</p>
+          <div class="score-recap">
+            <span class="big" id="finalScore">0</span>
+            <span id="finalWave"></span>
+            <div id="highNote" style="margin-top:6px; color:var(--acid);"></div>
+          </div>
+          <button class="go-btn" id="restartBtn">Press Space to Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="key-legend">
+        <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> lanes</span>
+        <span><kbd>Space</kbd> launch</span>
+      </div>
+      <div class="pad" aria-label="Touch controls">
+        <button class="pad-btn" id="btnUp" aria-label="Move up a lane">&uarr;</button>
+        <button class="pad-btn" id="btnDown" aria-label="Move down a lane">&darr;</button>
+        <button class="pad-btn go" id="btnGo" aria-label="Launch balloon">LAUNCH</button>
+      </div>
+    </div>
+  </div>
+  <footer>Four lanes &middot; infinite waves &middot; no actual nitrous involved</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var W = 880, H = 520;
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  ctx.scale(DPR, DPR);
+
+  var LANES = 4;
+  var LANE_TOP = 50;
+  var LANE_H = 100;
+  var PLAYER_X = 108;
+  var TANK_X = 62;
+  var SPAWN_X = W - 50;
+  var CATCH_X = 150; // how far a balloon must travel to be "beyond" the tanks visually
+  var DANGER_X = PLAYER_X + 46;
+
+  var LANE_COLORS = ['#ff3fa4', '#3ce1ff', '#d6f83c', '#ffb347'];
+  var SKIN_TONES = ['#e8b98a', '#caa06f', '#8a5a3b', '#f0cfa0'];
+  var DREAD_COLORS = ['#3a2417', '#241914', '#4a2e1c', '#1c130f'];
+  var TIEDYE_SETS = [
+    ['#ff3fa4', '#ffb347', '#d6f83c'],
+    ['#3ce1ff', '#b388ff', '#ff3fa4'],
+    ['#d6f83c', '#3ce1ff', '#ffb347'],
+    ['#b388ff', '#ff3fa4', '#3ce1ff']
+  ];
+
+  var TOP_BAND_H = LANE_TOP;
+  var BOTTOM_BAND_Y = LANE_TOP + LANES * LANE_H;
+  var BOTTOM_BAND_H = H - BOTTOM_BAND_Y;
+
+  // packed wall-to-wall along the top so the whole row reads as EZ-ups
+  var TENTS = [
+    { x: 55,  colors: ['#ff3fa4', '#ffb347', '#d6f83c', '#3ce1ff'], seed: 1,  scale: 0.8 },
+    { x: 150, colors: ['#3ce1ff', '#b388ff', '#ff3fa4', '#d6f83c'], seed: 4,  scale: 0.95 },
+    { x: 245, colors: ['#d6f83c', '#3ce1ff', '#ffb347', '#b388ff'], seed: 7,  scale: 0.78 },
+    { x: 345, colors: ['#ff3fa4', '#3ce1ff', '#b388ff', '#ffb347'], seed: 11, scale: 1 },
+    { x: 445, colors: ['#ffb347', '#d6f83c', '#ff3fa4', '#3ce1ff'], seed: 15, scale: 0.85 },
+    { x: 545, colors: ['#b388ff', '#ff3fa4', '#d6f83c', '#3ce1ff'], seed: 19, scale: 0.92 },
+    { x: 645, colors: ['#3ce1ff', '#ffb347', '#b388ff', '#d6f83c'], seed: 23, scale: 0.78 },
+    { x: 745, colors: ['#d6f83c', '#ff3fa4', '#3ce1ff', '#ffb347'], seed: 27, scale: 1 },
+    { x: 835, colors: ['#ff3fa4', '#b388ff', '#ffb347', '#d6f83c'], seed: 31, scale: 0.82 }
+  ];
+
+  // lot rats holding a finger up for a miracle ticket — clutters up the top row
+  var CROWD = [
+    { x: 25,  seed: 0.3, tone: '#2a1f4d' },
+    { x: 105, seed: 1.1, tone: '#3a2417' },
+    { x: 200, seed: 2.4, tone: '#1c1522' },
+    { x: 300, seed: 0.7, tone: '#241a3a' },
+    { x: 395, seed: 3.2, tone: '#2a1f4d' },
+    { x: 495, seed: 1.8, tone: '#3a2417' },
+    { x: 595, seed: 2.9, tone: '#1c1522' },
+    { x: 690, seed: 0.5, tone: '#241a3a' },
+    { x: 790, seed: 1.4, tone: '#2a1f4d' },
+    { x: 860, seed: 2.2, tone: '#3a2417' }
+  ];
+
+  // one body parked in the shade under each EZ-up so the row reads as packed
+  var TENT_PEOPLE = [
+    { x: 60,  seed: 0.4, tone: '#8a5a3b' },
+    { x: 155, seed: 1.7, tone: '#caa06f' },
+    { x: 250, seed: 2.6, tone: '#3a2417' },
+    { x: 350, seed: 0.9, tone: '#e8b98a' },
+    { x: 450, seed: 3.1, tone: '#8a5a3b' },
+    { x: 550, seed: 1.3, tone: '#caa06f' },
+    { x: 650, seed: 2.2, tone: '#3a2417' },
+    { x: 750, seed: 0.6, tone: '#e8b98a' },
+    { x: 840, seed: 1.9, tone: '#8a5a3b' }
+  ];
+
+  // EZ-ups planted mid-row, behind the action — deliberately in the thick of play
+  var MID_TENTS = [
+    { lane: 0, x: 380, colors: ['#ffb347', '#ff3fa4', '#b388ff'], seed: 2, scale: 0.85 },
+    { lane: 1, x: 610, colors: ['#3ce1ff', '#d6f83c', '#ff3fa4'], seed: 9, scale: 0.8 },
+    { lane: 3, x: 470, colors: ['#d6f83c', '#b388ff', '#3ce1ff'], seed: 5, scale: 0.9 }
+  ];
+
+  var WARES = [
+    { dx: -44, dy: -6, r: 3, color: '#ff3fa4' },
+    { dx: -30, dy: -3, r: 2.4, color: '#3ce1ff' },
+    { dx: -14, dy: -7, r: 3, color: '#d6f83c' },
+    { dx: 6, dy: -4, r: 2.6, color: '#ffb347' },
+    { dx: 22, dy: -8, r: 3, color: '#b388ff' },
+    { dx: 38, dy: -3, r: 2.2, color: '#ff3fa4' }
+  ];
+
+  function laneY(i){ return LANE_TOP + i * LANE_H + LANE_H / 2; }
+  function rand(a, b){ return a + Math.random() * (b - a); }
+  function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+  var hudScore = document.getElementById('hudScore');
+  var hudWave = document.getElementById('hudWave');
+  var hudLives = document.getElementById('hudLives');
+  var titleOverlay = document.getElementById('titleOverlay');
+  var gameOverOverlay = document.getElementById('gameOverOverlay');
+  var titleHigh = document.getElementById('titleHigh');
+  var finalScore = document.getElementById('finalScore');
+  var finalWave = document.getElementById('finalWave');
+  var highNote = document.getElementById('highNote');
+  var goHeadline = document.getElementById('goHeadline');
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+
+  function getHigh(){
+    try { return parseInt(localStorage.getItem('nitrousTapperHigh') || '0', 10) || 0; }
+    catch(e){ return 0; }
+  }
+  function setHigh(v){
+    try { localStorage.setItem('nitrousTapperHigh', String(v)); } catch(e){}
+  }
+
+  var GAMEOVER_LINES = ['Bummer, Man', 'Total Bogart', 'Harshed Your Mellow', 'Tanks Are Tapped', 'Crowd Surfed You'];
+
+  var state;
+  function freshState(){
+    return {
+      screen: 'title',
+      lane: 1,
+      score: 0,
+      wave: 1,
+      lives: 4,
+      served: 0,
+      hippies: [],
+      balloons: [],
+      particles: [],
+      spawnTimer: 1.2,
+      spawnInterval: 1.9,
+      hippieSpeed: 46,
+      maxConcurrent: 2,
+      combo: 0,
+      comboTimer: 0,
+      shake: 0,
+      throwTimer: 0,
+      time: 0,
+      nextId: 1
+    };
+  }
+  state = freshState();
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 1400);
+  }
+
+  function renderLives(){
+    var html = '';
+    for (var i = 0; i < 4; i++){
+      var spent = i >= state.lives;
+      html += '<svg viewBox="0 0 20 34" width="16" height="27" class="life-tank' + (spent ? ' spent' : '') + '">' +
+        '<rect x="7" y="1" width="6" height="4" rx="1" fill="#8b969e"/>' +
+        '<rect x="2" y="5" width="16" height="27" rx="6" fill="url(#tankGrad)" stroke="rgba(21,15,36,0.5)" stroke-width="1"/>' +
+        '<rect x="2" y="12" width="16" height="7" fill="' + LANE_COLORS[i] + '"/>' +
+        '</svg>';
+    }
+    hudLives.innerHTML = html;
+  }
+
+  function updateHud(){
+    hudScore.textContent = state.score;
+    hudWave.textContent = state.wave;
+    renderLives();
+  }
+
+  function resetGame(){
+    state = freshState();
+    state.screen = 'playing';
+    titleOverlay.hidden = true;
+    gameOverOverlay.hidden = true;
+    updateHud();
+  }
+
+  function endGame(){
+    state.screen = 'gameover';
+    var high = getHigh();
+    var isNew = state.score > high;
+    if (isNew){ setHigh(state.score); high = state.score; }
+    goHeadline.textContent = pick(GAMEOVER_LINES);
+    finalScore.textContent = state.score;
+    finalWave.textContent = 'reached wave ' + state.wave;
+    highNote.textContent = isNew ? 'New high score!' : ('High score: ' + high);
+    gameOverOverlay.hidden = false;
+  }
+
+  // ---------- input ----------
+  function moveUp(){ if (state.screen !== 'playing') return; state.lane = clamp(state.lane - 1, 0, LANES - 1); }
+  function moveDown(){ if (state.screen !== 'playing') return; state.lane = clamp(state.lane + 1, 0, LANES - 1); }
+  function launch(){
+    if (state.screen !== 'playing') return;
+    var inLane = state.balloons.filter(function(b){ return b.lane === state.lane; }).length;
+    if (inLane >= 2) return;
+    state.balloons.push({ lane: state.lane, x: PLAYER_X + 26, color: LANE_COLORS[state.lane], seed: Math.random() * 10 });
+    state.throwTimer = 0.16;
+  }
+  function primaryAction(){
+    if (state.screen === 'title'){ resetGame(); return; }
+    if (state.screen === 'gameover'){ resetGame(); return; }
+    launch();
+  }
+
+  window.addEventListener('keydown', function(e){
+    if (['ArrowUp','ArrowDown','ArrowRight','ArrowLeft',' ','Spacebar'].indexOf(e.key) !== -1) e.preventDefault();
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') moveUp();
+    else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') moveDown();
+    else if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') primaryAction();
+  }, { passive: false });
+
+  document.getElementById('btnUp').addEventListener('click', moveUp);
+  document.getElementById('btnDown').addEventListener('click', moveDown);
+  document.getElementById('btnGo').addEventListener('click', primaryAction);
+  document.getElementById('startBtn').addEventListener('click', resetGame);
+  document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+  titleHigh.textContent = getHigh() > 0 ? ('High score: ' + getHigh()) : 'No high score yet — be the first.';
+
+  (function buildBunting(){
+    var el = document.getElementById('bunting');
+    if (!el) return;
+    var colors = [LANE_COLORS[0], LANE_COLORS[1], LANE_COLORS[2], LANE_COLORS[3], '#b388ff'];
+    var html = '';
+    for (var i = 0; i < 18; i++){
+      html += '<span class="flag" style="background:' + colors[i % colors.length] + '"></span>';
+    }
+    el.innerHTML = html;
+  })();
+
+  // ---------- spawning & updates ----------
+  function copChance(wave){
+    return Math.min(0.35, 0.12 + wave * 0.02);
+  }
+
+  function spawnHippie(){
+    var busyLanes = {};
+    state.hippies.forEach(function(h){
+      if (h.state === 'walk' && h.x > SPAWN_X - 130) busyLanes[h.lane] = true;
+    });
+    var options = [];
+    for (var i = 0; i < LANES; i++) if (!busyLanes[i]) options.push(i);
+    if (!options.length) return;
+    var lane = pick(options);
+    var isCop = Math.random() < copChance(state.wave);
+    state.hippies.push({
+      id: state.nextId++,
+      lane: lane,
+      x: SPAWN_X,
+      state: 'walk',
+      type: isCop ? 'cop' : 'fan',
+      speed: state.hippieSpeed * rand(0.85, 1.2) * (isCop ? 1.05 : 1),
+      seed: Math.random() * 100,
+      skin: pick(SKIN_TONES),
+      dread: pick(DREAD_COLORS),
+      tie: pick(TIEDYE_SETS),
+      caughtT: 0
+    });
+  }
+
+  function addBurst(x, y, color, n){
+    for (var i = 0; i < n; i++){
+      state.particles.push({
+        x: x, y: y,
+        vx: rand(-70, 70), vy: rand(-120, -20),
+        g: 220,
+        life: 0, maxLife: rand(0.4, 0.75),
+        color: color, size: rand(2, 4)
+      });
+    }
+  }
+
+  function update(dt){
+    state.time += dt;
+    if (state.screen !== 'playing') return;
+
+    if (state.throwTimer > 0) state.throwTimer -= dt;
+    if (state.shake > 0) state.shake = Math.max(0, state.shake - dt * 2.4);
+    if (state.comboTimer > 0){
+      state.comboTimer -= dt;
+      if (state.comboTimer <= 0) state.combo = 0;
+    }
+
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0){
+      var alive = state.hippies.filter(function(h){ return h.state === 'walk'; }).length;
+      if (alive < state.maxConcurrent) spawnHippie();
+      state.spawnTimer = state.spawnInterval * rand(0.75, 1.15);
+    }
+
+    // balloons
+    for (var bi = state.balloons.length - 1; bi >= 0; bi--){
+      var b = state.balloons[bi];
+      b.x += 460 * dt;
+      var hit = null;
+      for (var hi = 0; hi < state.hippies.length; hi++){
+        var h = state.hippies[hi];
+        if (h.lane === b.lane && h.state === 'walk' && Math.abs(h.x - b.x) < 30){ hit = h; break; }
+      }
+      if (hit){
+        hit.state = 'caught';
+        hit.caughtT = 0;
+        state.balloons.splice(bi, 1);
+        if (hit.type === 'cop'){
+          state.combo = 0;
+          var lost = 150;
+          state.score = Math.max(0, state.score - lost);
+          state.shake = 0.35;
+          addBurst(hit.x, laneY(hit.lane) - 10, '#3ce1ff', 14);
+          showToast('Busted! -' + lost);
+        } else {
+          state.combo = Math.min(state.combo + 1, 8);
+          state.comboTimer = 1.3;
+          var gained = 100 + (state.combo - 1) * 25;
+          state.score += gained;
+          addBurst(hit.x, laneY(hit.lane) - 10, b.color, 14);
+          if (state.combo >= 3) showToast(state.combo + 'x streak! +' + gained);
+        }
+        updateHud();
+      } else if (b.x > SPAWN_X + 30){
+        state.balloons.splice(bi, 1);
+      }
+    }
+
+    // hippies
+    for (var hj = state.hippies.length - 1; hj >= 0; hj--){
+      var hp = state.hippies[hj];
+      if (hp.state === 'walk'){
+        hp.x -= hp.speed * dt;
+        if (hp.x <= DANGER_X){
+          if (hp.type === 'cop'){
+            state.hippies.splice(hj, 1);
+            showToast('Cop walked on by — nice.');
+            continue;
+          }
+          state.lives -= 1;
+          state.combo = 0;
+          state.shake = 0.4;
+          addBurst(PLAYER_X + 20, laneY(hp.lane), '#ff3fa4', 16);
+          state.hippies.splice(hj, 1);
+          updateHud();
+          if (state.lives <= 0){ endGame(); return; }
+        }
+      } else if (hp.state === 'caught'){
+        hp.caughtT += dt;
+        if (hp.caughtT > 0.55){
+          hp.state = 'leaving';
+          state.served += 1;
+          if (state.served % 8 === 0){
+            state.wave += 1;
+            state.spawnInterval = Math.max(0.65, state.spawnInterval - 0.18);
+            state.hippieSpeed = Math.min(140, state.hippieSpeed + 10);
+            state.maxConcurrent = Math.min(4, state.maxConcurrent + (state.wave % 2 === 0 ? 1 : 0));
+            showToast('Wave ' + state.wave + ' — the lot is filling up');
+            updateHud();
+          }
+        }
+      } else if (hp.state === 'leaving'){
+        hp.x += 130 * dt;
+        if (hp.x > SPAWN_X + 60) state.hippies.splice(hj, 1);
+      }
+    }
+
+    // particles
+    for (var pi = state.particles.length - 1; pi >= 0; pi--){
+      var p = state.particles[pi];
+      p.life += dt;
+      if (p.life >= p.maxLife){ state.particles.splice(pi, 1); continue; }
+      p.vy += p.g * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+  }
+
+  // ---------- drawing ----------
+  function drawBackground(){
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a1130');
+    g.addColorStop(0.55, '#150f24');
+    g.addColorStop(1, '#0f0a1c');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // soft haze sun behind stand
+    var sun = ctx.createRadialGradient(TANK_X, LANE_TOP - 10, 4, TANK_X, LANE_TOP - 10, 220);
+    sun.addColorStop(0, 'rgba(255,179,71,0.18)');
+    sun.addColorStop(1, 'rgba(255,179,71,0)');
+    ctx.fillStyle = sun;
+    ctx.fillRect(0, 0, W, H);
+
+    // faint tie-dye wash haunting the back of the lot
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    drawTieDyeSwirl(650, 240, 220, ['#ff3fa4', '#3ce1ff', '#d6f83c', '#ffb347', '#b388ff'], 3);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    for (var i = 0; i <= LANES; i++){
+      var y = LANE_TOP + i * LANE_H;
+      ctx.strokeStyle = 'rgba(245,236,217,0.10)';
+      ctx.setLineDash([6, 8]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(20, y);
+      ctx.lineTo(W - 20, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.strokeStyle = 'rgba(255,63,164,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(DANGER_X, LANE_TOP - 6);
+    ctx.lineTo(DANGER_X, LANE_TOP + LANES * LANE_H + 6);
+    ctx.stroke();
+  }
+
+  function drawTank(x, y, color, glow){
+    ctx.save();
+    ctx.translate(x, y);
+    if (glow){
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
+    }
+    ctx.fillStyle = '#7d8890';
+    roundRect(-9, -34, 18, 8, 3); ctx.fill();
+    var body = ctx.createLinearGradient(-14, 0, 14, 0);
+    body.addColorStop(0, '#7f8a92');
+    body.addColorStop(0.5, '#e9eff2');
+    body.addColorStop(1, '#767f87');
+    ctx.fillStyle = body;
+    roundRect(-14, -26, 28, 52, 12); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    roundRect(-14, -12, 28, 14, 0); ctx.fill();
+    ctx.fillStyle = 'rgba(21,15,36,0.4)';
+    ctx.font = '7px "Space Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('N2O', 0, 20);
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r){
+    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + w - r.tr, y);
+    ctx.arcTo(x + w, y, x + w, y + r.tr, r.tr);
+    ctx.lineTo(x + w, y + h - r.br);
+    ctx.arcTo(x + w, y + h, x + w - r.br, y + h, r.br);
+    ctx.lineTo(x + r.bl, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r.bl, r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.arcTo(x, y, x + r.tl, y, r.tl);
+    ctx.closePath();
+  }
+
+  function drawDreads(cx, cy, color, phase, energetic){
+    var strands = 6;
+    for (var i = 0; i < strands; i++){
+      var t = i / (strands - 1);
+      var baseX = cx + (t - 0.5) * 22;
+      var sway = Math.sin(state.time * (energetic ? 6 : 3) + phase + i) * (energetic ? 7 : 4);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(baseX, cy - 2);
+      ctx.quadraticCurveTo(baseX + sway * 0.6, cy + 16, baseX + sway, cy + 30);
+      ctx.stroke();
+    }
+  }
+
+  function drawHippie(h){
+    var y = laneY(h.lane);
+    var walkPhase = state.time * 8 + h.seed;
+    var bob = h.state === 'walk' ? Math.abs(Math.sin(walkPhase)) * 4 : (h.state === 'caught' ? Math.sin(state.time * 10) * 3 : 0);
+    var legSwing = h.state === 'walk' ? Math.sin(walkPhase) * 9 : 0;
+    var cx = h.x, cy = y - bob;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // legs
+    ctx.fillStyle = '#3d3050';
+    roundRect(-11 + legSwing * 0.3, 20, 8, 20, 3); ctx.fill();
+    roundRect(3 - legSwing * 0.3, 20, 8, 20, 3); ctx.fill();
+
+    // torso (tie-dye)
+    ctx.save();
+    ctx.beginPath();
+    roundRect(-16, -10, 32, 32, 12);
+    ctx.clip();
+    ctx.fillStyle = h.tie[0];
+    ctx.fillRect(-16, -10, 32, 32);
+    ctx.fillStyle = h.tie[1];
+    ctx.beginPath(); ctx.arc(-4, 4, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = h.tie[2];
+    ctx.beginPath(); ctx.arc(8, 14, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // arms
+    ctx.strokeStyle = h.skin;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    if (h.state === 'caught'){
+      ctx.beginPath(); ctx.moveTo(-13, -2); ctx.lineTo(-20, -22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(13, -2); ctx.lineTo(20, -22); ctx.stroke();
+    } else {
+      var armSwing = Math.sin(walkPhase) * 8;
+      ctx.beginPath(); ctx.moveTo(-13, -2); ctx.lineTo(-16, 12 + armSwing); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(13, -2); ctx.lineTo(16, 12 - armSwing); ctx.stroke();
+    }
+
+    // dreadlocks (behind head, drawn first so head overlaps roots)
+    drawDreads(0, -18, h.dread, h.seed, h.state === 'caught');
+
+    // head
+    ctx.fillStyle = h.skin;
+    ctx.beginPath(); ctx.arc(0, -20, 13, 0, Math.PI * 2); ctx.fill();
+
+    // headband
+    ctx.strokeStyle = h.tie[1];
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, -20, 13, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+
+    // round glasses
+    ctx.strokeStyle = '#1c1522';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(-5, -20, 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(5, -20, 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-1, -20); ctx.lineTo(1, -20); ctx.stroke();
+
+    if (h.state === 'caught'){
+      ctx.fillStyle = 'rgba(214,248,60,0.9)';
+      ctx.font = "12px 'Bungee', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('!', 0, -40 + Math.sin(state.time * 14) * 2);
+    }
+
+    ctx.restore();
+  }
+
+  // undercover-obvious cop — do NOT float this one a balloon
+  function drawCop(h){
+    var y = laneY(h.lane);
+    var walkPhase = state.time * 8 + h.seed;
+    var bob = h.state === 'walk' ? Math.abs(Math.sin(walkPhase)) * 4 : (h.state === 'caught' ? Math.sin(state.time * 10) * 3 : 0);
+    var legSwing = h.state === 'walk' ? Math.sin(walkPhase) * 9 : 0;
+    var cx = h.x, cy = y - bob;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // uniform trousers with a light stripe
+    ctx.fillStyle = '#1c2b4a';
+    roundRect(-11 + legSwing * 0.3, 20, 8, 20, 3); ctx.fill();
+    roundRect(3 - legSwing * 0.3, 20, 8, 20, 3); ctx.fill();
+    ctx.strokeStyle = '#e7ddc4';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-8 + legSwing * 0.3, 21); ctx.lineTo(-8 + legSwing * 0.3, 39); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6 - legSwing * 0.3, 21); ctx.lineTo(6 - legSwing * 0.3, 39); ctx.stroke();
+
+    // torso: navy uniform with a badge
+    ctx.fillStyle = '#1c2b4a';
+    roundRect(-16, -10, 32, 32, 12); ctx.fill();
+    ctx.strokeStyle = '#0f1a30';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(0, 22); ctx.stroke();
+    ctx.fillStyle = '#d6f83c';
+    ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(-6, -1); ctx.lineTo(-9, 2); ctx.lineTo(-12, -1); ctx.closePath(); ctx.fill();
+
+    // arms
+    ctx.strokeStyle = h.skin;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    if (h.state === 'caught'){
+      ctx.beginPath(); ctx.moveTo(-13, -2); ctx.lineTo(-20, -22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(13, -2); ctx.lineTo(20, -22); ctx.stroke();
+    } else {
+      var armSwing = Math.sin(walkPhase) * 8;
+      ctx.beginPath(); ctx.moveTo(-13, -2); ctx.lineTo(-16, 12 + armSwing); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(13, -2); ctx.lineTo(16, 12 - armSwing); ctx.stroke();
+    }
+
+    // head
+    ctx.fillStyle = h.skin;
+    ctx.beginPath(); ctx.arc(0, -20, 13, 0, Math.PI * 2); ctx.fill();
+
+    // police cap: dome + band, badge, short visor
+    ctx.fillStyle = '#152238';
+    ctx.beginPath(); ctx.arc(0, -25, 14, Math.PI, 0); ctx.fill();
+    roundRect(-14, -25, 28, 7, 2); ctx.fill();
+    ctx.fillStyle = '#d6f83c';
+    ctx.beginPath(); ctx.arc(0, -22, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0f1a30';
+    roundRect(-9, -18, 18, 4, 2); ctx.fill();
+
+    // sunglasses
+    ctx.fillStyle = '#141018';
+    roundRect(-11, -21, 22, 6, 3); ctx.fill();
+
+    // mustache
+    ctx.fillStyle = '#241914';
+    roundRect(-6, -12, 12, 3, 2); ctx.fill();
+
+    if (h.state === 'caught'){
+      ctx.fillStyle = 'rgba(255,63,164,0.95)';
+      ctx.font = "10px 'Bungee', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('BUSTED', 0, -42 + Math.sin(state.time * 14) * 2);
+    }
+
+    ctx.restore();
+  }
+
+  function drawPlayer(){
+    var y = laneY(state.lane);
+    var bob = Math.sin(state.time * 4) * 2;
+    var throwing = state.throwTimer > 0;
+    var team = LANE_COLORS[state.lane];
+    ctx.save();
+    ctx.translate(PLAYER_X, y - bob);
+
+    // Nike-style sneakers
+    ctx.fillStyle = '#f5ecd9';
+    roundRect(-13, 30, 10, 7, 3); ctx.fill();
+    roundRect(3, 30, 10, 7, 3); ctx.fill();
+    ctx.strokeStyle = team;
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-12, 34); ctx.quadraticCurveTo(-9, 30.5, -4, 33); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, 34); ctx.quadraticCurveTo(7, 30.5, 12, 33); ctx.stroke();
+    ctx.strokeStyle = 'rgba(21,15,36,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-13, 36.5); ctx.lineTo(-3, 36.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(3, 36.5); ctx.lineTo(13, 36.5); ctx.stroke();
+
+    // bare calves
+    ctx.fillStyle = '#caa06f';
+    roundRect(-11, 22, 7, 11, 3); ctx.fill();
+    roundRect(4, 22, 7, 11, 3); ctx.fill();
+
+    // baggy basketball shorts
+    ctx.fillStyle = '#1c1522';
+    ctx.beginPath();
+    ctx.moveTo(-16, 6);
+    ctx.lineTo(16, 6);
+    ctx.lineTo(12, 24);
+    ctx.lineTo(3, 24);
+    ctx.lineTo(2, 14);
+    ctx.lineTo(-2, 14);
+    ctx.lineTo(-3, 24);
+    ctx.lineTo(-12, 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = team;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-14, 8); ctx.lineTo(-11, 23); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14, 8); ctx.lineTo(11, 23); ctx.stroke();
+
+    // bare arms (jersey drawn after covers the shoulder root)
+    ctx.strokeStyle = '#caa06f';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    var reach = throwing ? 28 : 14;
+    ctx.beginPath(); ctx.moveTo(-13, -4); ctx.lineTo(-17, 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(13, -4); ctx.lineTo(reach, throwing ? -10 : 8); ctx.stroke();
+
+    // sleeveless basketball jersey
+    ctx.fillStyle = '#eef0f2';
+    roundRect(-15, -10, 30, 18, { tl: 8, tr: 8, br: 4, bl: 4 });
+    ctx.fill();
+    ctx.fillStyle = team;
+    ctx.fillRect(-15, -10, 4, 18);
+    ctx.fillRect(11, -10, 4, 18);
+    ctx.strokeStyle = team;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -9, 6, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+    ctx.fillStyle = '#1c1522';
+    ctx.font = "bold 11px 'Bungee', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText(String(state.lane + 1), 0, 4);
+
+    // head
+    ctx.fillStyle = '#1c1522';
+    ctx.beginPath(); ctx.arc(0, -21, 14, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#caa06f';
+    ctx.beginPath(); ctx.arc(0, -19, 13, 0, Math.PI * 2); ctx.fill();
+
+    // flat bill cap: front panel + logo, brim pointing toward the lanes
+    ctx.fillStyle = '#1c1522';
+    roundRect(-13, -28, 26, 9, 3); ctx.fill();
+    ctx.fillStyle = team;
+    ctx.beginPath(); ctx.arc(5, -24, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.translate(13, -25);
+    ctx.rotate(-0.08);
+    ctx.fillStyle = '#141018';
+    roundRect(-2, -3, 16, 5.5, 1.5);
+    ctx.fill();
+    ctx.restore();
+
+    // sunglasses
+    ctx.fillStyle = '#141018';
+    roundRect(-11, -21, 22, 6, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-8, -19); ctx.lineTo(-4, -17); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(2, -19); ctx.lineTo(6, -17); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawBalloon(b){
+    var y = laneY(b.lane) + Math.sin(state.time * 6 + b.seed) * 6;
+    ctx.save();
+    ctx.translate(b.x, y);
+
+    // trailing gas puffs
+    ctx.fillStyle = 'rgba(245,236,217,0.18)';
+    ctx.beginPath(); ctx.arc(-16, 4, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-24, 2, 3.5, 0, Math.PI * 2); ctx.fill();
+
+    // string
+    ctx.strokeStyle = 'rgba(245,236,217,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 12);
+    ctx.quadraticCurveTo(-4, 18, 0, 24);
+    ctx.stroke();
+
+    // knot
+    ctx.fillStyle = b.color;
+    ctx.beginPath(); ctx.moveTo(-3, 11); ctx.lineTo(3, 11); ctx.lineTo(0, 16); ctx.closePath(); ctx.fill();
+
+    // body
+    var grad = ctx.createRadialGradient(-4, -6, 2, 0, 0, 16);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.15, b.color);
+    grad.addColorStop(1, shade(b.color, -20));
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.ellipse(0, 0, 13, 15, 0, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  function shade(hex, amt){
+    var n = parseInt(hex.slice(1), 16);
+    var r = clamp((n >> 16) + amt, 0, 255);
+    var g = clamp(((n >> 8) & 0xff) + amt, 0, 255);
+    var b = clamp((n & 0xff) + amt, 0, 255);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function drawParticles(){
+    state.particles.forEach(function(p){
+      var a = 1 - p.life / p.maxLife;
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  // ---------- shakedown lot decor ----------
+  function tieDyeRingPath(cx, cy, r, jitter, seed){
+    ctx.beginPath();
+    var pts = 20;
+    for (var i = 0; i <= pts; i++){
+      var a = (i / pts) * Math.PI * 2;
+      var rr = r + Math.sin(a * 3 + seed) * jitter + Math.cos(a * 5 - seed) * jitter * 0.4;
+      var px = cx + Math.cos(a) * rr;
+      var py = cy + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+
+  function drawTieDyeSwirl(cx, cy, r, colors, seed){
+    for (var i = colors.length; i >= 1; i--){
+      var rr = r * (i / colors.length);
+      ctx.fillStyle = colors[(i - 1) % colors.length];
+      tieDyeRingPath(cx, cy, rr, rr * 0.14, seed + i * 1.7);
+      ctx.fill();
+    }
+  }
+
+  // EZ-up pop-up canopy: hip roof in a tie-dye swirl, scalloped skirt, splayed legs.
+  // Shared by the top-band tents (roof cropped by the band clip) and the mid-lane
+  // tents (drawn full height, planted right in the lane behind the action).
+  function drawTentShape(colors, seed, scale){
+    scale = scale || 1;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-8, -2);
+    ctx.lineTo(8, -2);
+    ctx.lineTo(34, 24);
+    ctx.lineTo(-34, 24);
+    ctx.closePath();
+    ctx.clip();
+    drawTieDyeSwirl(0, 10, 46, colors, seed);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(21,15,36,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, 24); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-34, 24); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -2); ctx.lineTo(34, 24); ctx.stroke();
+
+    ctx.strokeStyle = '#4a3b2a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-8, -2); ctx.lineTo(8, -2); ctx.lineTo(34, 24); ctx.lineTo(-34, 24); ctx.closePath();
+    ctx.stroke();
+
+    ctx.fillStyle = colors[colors.length - 1];
+    ctx.beginPath();
+    ctx.moveTo(-34, 24);
+    for (var zx = -34; zx <= 34; zx += 11){
+      ctx.lineTo(zx + 5.5, 31);
+    }
+    ctx.lineTo(34, 24);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#4a3b2a';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(-27, 25); ctx.lineTo(-33, 46); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(27, 25); ctx.lineTo(33, 46); ctx.stroke();
+    ctx.fillStyle = '#2a1f4d';
+    ctx.beginPath(); ctx.arc(-33, 46, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(33, 46, 2.4, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = colors[1 % colors.length];
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(10, -6);
+    ctx.lineTo(0, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#4a3b2a';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, -14); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawEasyUpTent(t){
+    ctx.save();
+    ctx.translate(t.x, 0);
+    drawTentShape(t.colors, t.seed, t.scale || 1);
+    ctx.restore();
+  }
+
+  function drawFingerPerson(x, seed, tone){
+    ctx.save();
+    ctx.translate(x + Math.sin(state.time * 1.2 + seed) * 1.5, TOP_BAND_H - 4);
+    ctx.fillStyle = tone;
+    roundRect(-5, -24, 10, 20, 3);
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -28, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = tone;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(3, -22); ctx.lineTo(9, -40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-4, -16); ctx.lineTo(-8, -6); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTentPerson(x, seed, tone){
+    ctx.save();
+    ctx.translate(x + Math.sin(state.time * 1.4 + seed) * 1, TOP_BAND_H - 6);
+    var sway = Math.sin(state.time * 1.4 + seed) * 2;
+    ctx.strokeStyle = tone;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-5, -14); ctx.lineTo(-8 + sway, -3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, -14); ctx.lineTo(8 - sway, -3); ctx.stroke();
+    ctx.fillStyle = tone;
+    roundRect(-5, -18, 10, 14, 3);
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -21, 4.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawTopLot(){
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, TOP_BAND_H);
+    ctx.clip();
+    TENTS.forEach(drawEasyUpTent);
+    TENT_PEOPLE.forEach(function(p){ drawTentPerson(p.x, p.seed, p.tone); });
+    CROWD.forEach(function(c){ drawFingerPerson(c.x, c.seed, c.tone); });
+    ctx.restore();
+  }
+
+  function drawMidLaneTent(t){
+    var scale = t.scale || 1;
+    ctx.save();
+    ctx.translate(t.x, laneY(t.lane) - 24 * scale);
+    drawTentShape(t.colors, t.seed, scale);
+    ctx.restore();
+  }
+
+  function drawMidLaneTents(){
+    MID_TENTS.forEach(drawMidLaneTent);
+  }
+
+  function drawSmokeWisps(x, y){
+    for (var i = 0; i < 3; i++){
+      var t = (state.time * 14 + i * 13) % 40;
+      var a = 1 - t / 40;
+      ctx.fillStyle = 'rgba(245,236,217,' + (a * 0.35).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.arc(x + Math.sin(state.time * 1.5 + i) * 4, y - t, 3 + t * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawBlanketVendor(x, y){
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = '#241a3a';
+    roundRect(-52, -2, 104, 18, 4);
+    ctx.fill();
+    ctx.save();
+    roundRect(-52, -2, 104, 18, 4);
+    ctx.clip();
+    drawTieDyeSwirl(-6, 7, 46, ['#b388ff', '#ff3fa4', '#ffb347', '#d6f83c'], 12);
+    ctx.restore();
+
+    WARES.forEach(function(w){
+      ctx.fillStyle = w.color;
+      ctx.beginPath(); ctx.arc(w.dx, w.dy, w.r, 0, Math.PI * 2); ctx.fill();
+    });
+
+    ctx.fillStyle = '#8a5a3b';
+    ctx.beginPath(); ctx.arc(-38, -20, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#241914';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-44, -18); ctx.quadraticCurveTo(-46, -6, -42, 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-32, -18); ctx.quadraticCurveTo(-30, -6, -34, 2); ctx.stroke();
+    ctx.fillStyle = '#3a2b57';
+    roundRect(-48, -14, 20, 16, 6);
+    ctx.fill();
+
+    ctx.fillStyle = '#e7ddc4';
+    ctx.strokeStyle = '#4a3b2a';
+    ctx.lineWidth = 1;
+    roundRect(30, -16, 46, 15, 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#150f24';
+    ctx.font = "bold 7px 'Space Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('MIRACLE?', 53, -6);
+    ctx.beginPath(); ctx.moveTo(34, -1); ctx.lineTo(28, 8); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawParkedBus(x, y, scale, topColor, bottomColor, decal){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    ctx.save();
+    roundRect(-60, -18, 130, 32, 12);
+    ctx.clip();
+    ctx.fillStyle = topColor;
+    ctx.fillRect(-60, -18, 130, 16);
+    ctx.fillStyle = bottomColor;
+    ctx.fillRect(-60, -2, 130, 16);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(21,15,36,0.5)';
+    ctx.lineWidth = 1.5;
+    roundRect(-60, -18, 130, 32, 12);
+    ctx.stroke();
+
+    ctx.fillStyle = '#1e1636';
+    roundRect(-46, -12, 30, 14, 4);
+    ctx.fill();
+
+    if (decal){
+      var fx = 6, fy = -2;
+      ctx.fillStyle = decal[0];
+      for (var p = 0; p < 5; p++){
+        var ang = p * (Math.PI * 2 / 5);
+        ctx.beginPath();
+        ctx.arc(fx + Math.cos(ang) * 6, fy + Math.sin(ang) * 6, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = decal[1];
+      ctx.beginPath(); ctx.arc(fx, fy, 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.fillStyle = '#1c1522';
+    ctx.beginPath(); ctx.arc(-38, 16, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(48, 16, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8b969e';
+    ctx.beginPath(); ctx.arc(-38, 16, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(48, 16, 3, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawBusVendor(x, y){
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = '#2a1f4d';
+    roundRect(-92, 4, 18, 8, 2);
+    ctx.fill();
+    ctx.strokeStyle = '#4a3b2a';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-88, 12); ctx.lineTo(-88, 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-78, 12); ctx.lineTo(-78, 18); ctx.stroke();
+    drawSmokeWisps(-83, 2);
+
+    drawParkedBus(0, 0, 1, '#f5ecd9', '#3ce1ff', ['#ffb347', '#d6f83c']);
+
+    ctx.fillStyle = '#caa06f';
+    ctx.beginPath(); ctx.arc(70, -8, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#5b3a86';
+    roundRect(62, -2, 16, 18, 5);
+    ctx.fill();
+    ctx.strokeStyle = '#2a1c12';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(63, 4); ctx.lineTo(56, 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(77, 4); ctx.lineTo(84, 10); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawVendorTable(x, y){
+    ctx.save();
+    ctx.translate(x, y);
+
+    // vendor standing behind the table
+    ctx.fillStyle = '#8a5a3b';
+    ctx.beginPath(); ctx.arc(0, -32, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#5b3a86';
+    roundRect(-8, -26, 16, 20, 5);
+    ctx.fill();
+    ctx.strokeStyle = '#8a5a3b';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-7, -18); ctx.lineTo(-13, -8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7, -18); ctx.lineTo(13, -8); ctx.stroke();
+
+    // hung shirts / stickers on a rail
+    var shirtColors = ['#ff3fa4', '#3ce1ff', '#d6f83c'];
+    for (var i = 0; i < 3; i++){
+      var sx = -20 + i * 20;
+      ctx.strokeStyle = 'rgba(245,236,217,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx, -20); ctx.lineTo(sx, -6); ctx.stroke();
+      ctx.fillStyle = shirtColors[i];
+      roundRect(sx - 6, -20, 12, 15, 3);
+      ctx.fill();
+    }
+
+    // folding table
+    ctx.fillStyle = '#3a2b57';
+    roundRect(-30, -4, 60, 5, 2);
+    ctx.fill();
+    ctx.strokeStyle = '#241a3a';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-26, 1); ctx.lineTo(-26, 15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(26, 1); ctx.lineTo(26, 15); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawBeerVendor(x, y){
+    ctx.save();
+    ctx.translate(x, y);
+
+    // sign
+    ctx.fillStyle = '#e7ddc4';
+    ctx.strokeStyle = '#4a3b2a';
+    ctx.lineWidth = 1;
+    roundRect(-34, -25, 34, 13, 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#150f24';
+    ctx.font = "bold 6px 'Space Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('BEER $3', -17, -17);
+    ctx.beginPath(); ctx.moveTo(-20, -12); ctx.lineTo(-22, -6); ctx.stroke();
+
+    // cooler with cans on ice
+    ctx.fillStyle = '#e14b4b';
+    roundRect(-22, -6, 30, 16, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(21,15,36,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(8, 0); ctx.stroke();
+    var canColors = ['#3ce1ff', '#d6f83c', '#ffb347'];
+    for (var i = 0; i < 3; i++){
+      ctx.fillStyle = canColors[i];
+      roundRect(-18 + i * 8, -14, 4, 10, 1.5);
+      ctx.fill();
+    }
+
+    // vendor holding a can up
+    ctx.fillStyle = '#caa06f';
+    ctx.beginPath(); ctx.arc(20, -26, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#241a3a';
+    roundRect(12, -20, 16, 18, 5);
+    ctx.fill();
+    ctx.strokeStyle = '#caa06f';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(13, -12); ctx.lineTo(6, -4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(27, -14); ctx.lineTo(33, -30); ctx.stroke();
+    ctx.fillStyle = '#ffb347';
+    roundRect(30, -36, 5, 8, 1.5);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawLotDog(){
+    var wander = Math.sin(state.time * 0.35) * 40;
+    var x = 565 + wander;
+    var y = 500;
+    ctx.save();
+    ctx.translate(x, y);
+    if (Math.cos(state.time * 0.35) < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = '#e7ddc4';
+    roundRect(-13, -8, 22, 10, 5);
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(11, -10, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(14, -14); ctx.lineTo(18, -18); ctx.lineTo(15, -10); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#e7ddc4';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-13, -3); ctx.lineTo(-17, 4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(9, -3); ctx.lineTo(9, 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-15, -5); ctx.quadraticCurveTo(-20, -10, -17, -14); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBottomLot(){
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, BOTTOM_BAND_Y, W, BOTTOM_BAND_H);
+    ctx.clip();
+    var baseY = BOTTOM_BAND_Y + BOTTOM_BAND_H - 22;
+    drawParkedBus(55, baseY, 0.75, '#f5ecd9', '#b388ff', ['#ff3fa4', '#ffb347']);
+    drawBlanketVendor(175, baseY);
+    drawVendorTable(330, baseY);
+    drawBeerVendor(445, baseY);
+    drawParkedBus(615, baseY, 0.8, '#f5ecd9', '#ffb347', ['#3ce1ff', '#d6f83c']);
+    drawBusVendor(790, BOTTOM_BAND_Y + BOTTOM_BAND_H - 24);
+    drawLotDog();
+    ctx.restore();
+  }
+
+  function draw(){
+    ctx.save();
+    if (state.shake > 0){
+      ctx.translate(rand(-1, 1) * state.shake * 6, rand(-1, 1) * state.shake * 6);
+    }
+    drawBackground();
+    drawTopLot();
+    drawBottomLot();
+
+    for (var i = 0; i < LANES; i++){
+      drawTank(TANK_X, laneY(i), LANE_COLORS[i], i === state.lane && state.screen === 'playing');
+    }
+    drawMidLaneTents();
+
+    state.hippies.forEach(function(h){ (h.type === 'cop' ? drawCop : drawHippie)(h); });
+    state.balloons.forEach(drawBalloon);
+    drawParticles();
+    if (state.screen === 'playing') drawPlayer();
+
+    ctx.restore();
+  }
+
+  // ---------- loop ----------
+  var last = performance.now();
+  function frame(now){
+    var dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  updateHud();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

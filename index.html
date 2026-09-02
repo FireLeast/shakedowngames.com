@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shakedown Games</title>
+<meta name="description" content="Shakedown Games — browser games built for the lot between sets.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Arvo:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #f2e8d5;
+    --paper-dim: #e2d3ae;
+    --ink: #2b2118;
+    --rust: #c1502e;
+    --mustard: #d99a2b;
+    --denim: #3f6e73;
+    --plum: #6a3f68;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(43,33,24,0.05), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(43,33,24,0.05), transparent 40%),
+      radial-gradient(rgba(43,33,24,0.16) 1px, transparent 1.3px);
+    background-size:auto, auto, 7px 7px;
+    color:var(--ink);
+    font-family:'Arvo', Georgia, serif;
+    min-height:100vh;
+  }
+  .roll-edge{
+    height:10px;
+    background: repeating-linear-gradient(90deg, var(--rust) 0 14px, var(--ink) 14px 16px);
+  }
+
+  .poster{
+    max-width:1040px;
+    margin:0 auto;
+    padding:52px 28px 60px;
+  }
+
+  .masthead{
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow{
+    margin:0;
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    color:var(--rust);
+  }
+  h1{
+    margin:2px 0 0;
+    font-family:'Rye', 'Arvo', serif;
+    font-weight:400;
+    font-size:clamp(44px, 8vw, 84px);
+    line-height:1;
+    letter-spacing:.01em;
+    color:var(--ink);
+    text-wrap:balance;
+  }
+  .tagline{
+    margin:6px 0 0;
+    max-width:52ch;
+    font-size:16px;
+    line-height:1.6;
+    color:var(--ink);
+    opacity:.82;
+    font-style:italic;
+  }
+
+  .tear-divider{
+    position:relative;
+    max-width:760px;
+    margin:34px auto 44px;
+    border-top:2px dashed var(--ink);
+    opacity:.55;
+  }
+  .tear-divider span{
+    position:absolute;
+    top:-9px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--paper);
+    padding:0 14px;
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+    gap:34px 30px;
+    padding:6px 10px 10px;
+  }
+
+  .ticket{
+    position:relative;
+    display:flex;
+    background:var(--paper);
+    border:2px solid var(--ink);
+    border-radius:6px;
+    box-shadow:5px 6px 0 rgba(43,33,24,0.18);
+    text-decoration:none;
+    color:inherit;
+    min-height:230px;
+  }
+  a.ticket:nth-child(1){ transform:rotate(-1.1deg); }
+  .ticket:nth-child(2){ transform:rotate(0.9deg); }
+  .ticket:nth-child(3){ transform:rotate(-0.7deg); }
+  a.ticket{ transition:transform .18s ease, box-shadow .18s ease; cursor:pointer; }
+  a.ticket:hover, a.ticket:focus-visible{
+    transform:rotate(0deg) translateY(-4px);
+    box-shadow:7px 9px 0 rgba(43,33,24,0.24);
+    outline:none;
+  }
+  a.ticket:focus-visible{ outline:3px solid var(--denim); outline-offset:3px; }
+
+  .ticket-main{
+    flex:1;
+    min-width:0;
+    padding:22px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+    position:relative;
+  }
+  .ticket-main::after{
+    content:"";
+    position:absolute;
+    top:0; bottom:0; right:0;
+    border-right:2px dashed var(--ink);
+    opacity:.45;
+  }
+  .ticket-icon{ line-height:0; margin-bottom:2px; }
+  .ticket-tag{
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--denim);
+  }
+  .ticket-main h2{
+    margin:0;
+    font-family:'Rye', 'Arvo', serif;
+    font-weight:400;
+    font-size:26px;
+    line-height:1.1;
+    color:var(--ink);
+  }
+  .ticket-main p{
+    margin:0;
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--ink);
+    opacity:.85;
+    flex:1;
+  }
+  .ticket-cta{
+    align-self:flex-start;
+    margin-top:4px;
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    border:2px solid var(--ink);
+    border-radius:3px;
+    padding:6px 12px;
+  }
+  a.ticket .ticket-cta{ background:var(--mustard); }
+  .ticket-soon .ticket-cta{
+    background:none;
+    color:var(--ink);
+    opacity:.55;
+    border-style:dashed;
+  }
+  .ticket-teaser .ticket-cta{ display:none; }
+
+  .ticket-stub{
+    width:56px;
+    flex-shrink:0;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .ticket-stub::before, .ticket-stub::after{
+    content:"";
+    position:absolute;
+    left:-9px;
+    width:18px; height:18px;
+    border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--ink);
+  }
+  .ticket-stub::before{ top:-11px; }
+  .ticket-stub::after{ bottom:-11px; }
+  .stub-no{
+    writing-mode:vertical-rl;
+    transform:rotate(180deg);
+    font-family:'Courier Prime', monospace;
+    letter-spacing:.2em;
+    font-size:11px;
+    font-weight:700;
+    color:var(--ink);
+    opacity:.7;
+  }
+
+  .ticket-soon{ filter:saturate(.5) contrast(.97); }
+  .stamp{
+    position:absolute;
+    top:16px; right:66px;
+    border:3px solid var(--rust);
+    color:var(--rust);
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:.1em;
+    padding:4px 9px;
+    transform:rotate(-13deg);
+    border-radius:4px;
+    opacity:.88;
+    pointer-events:none;
+    background:rgba(242,232,213,0.5);
+  }
+
+  footer{
+    text-align:center;
+    margin-top:50px;
+    font-family:'Courier Prime', monospace;
+    font-size:11.5px;
+    letter-spacing:.06em;
+    color:var(--ink);
+    opacity:.5;
+  }
+
+  @media (max-width:520px){
+    .stamp{ top:12px; right:14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="roll-edge" aria-hidden="true"></div>
+
+<div class="poster">
+  <header class="masthead">
+    <p class="eyebrow">Est. 2026 &middot; Lot Games Division</p>
+    <h1>Shakedown Games</h1>
+    <p class="tagline">Browser games built for the parking lot between sets &mdash; no download, no miracle ticket required.</p>
+  </header>
+
+  <div class="tear-divider" aria-hidden="true"><span>&#9986; tear here, head</span></div>
+
+  <main class="grid">
+    <a class="ticket" href="./games/nitrous-tapper/">
+      <div class="ticket-main">
+        <div class="ticket-icon">
+          <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+            <ellipse cx="17" cy="18" rx="11" ry="13" fill="var(--rust)" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M17 31 L14 36 L20 36 Z" fill="var(--ink)"/>
+            <path d="M17 36 Q13 40 17 44" stroke="var(--ink)" stroke-width="1.6" fill="none"/>
+            <rect x="30" y="9" width="12" height="27" rx="5" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="30" y="19" width="12" height="7" fill="var(--denim)"/>
+          </svg>
+        </div>
+        <div class="ticket-tag">Arcade &middot; 1 Player</div>
+        <h2>Nitrous Tapper</h2>
+        <p>Float balloons past the crowd before the lot rushes your tanks. A Root Beer Tapper homage, shakedown-style.</p>
+        <span class="ticket-cta">Play now &rarr;</span>
+      </div>
+      <div class="ticket-stub"><span class="stub-no">No. 001</span></div>
+    </a>
+
+    <a class="ticket" href="./games/shakedown-words/">
+      <div class="ticket-main">
+        <div class="ticket-icon">
+          <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+            <rect x="4" y="4" width="12" height="12" rx="2" fill="var(--paper-dim)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="18" y="4" width="12" height="12" rx="2" fill="var(--mustard)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="32" y="4" width="12" height="12" rx="2" fill="var(--paper-dim)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="4" y="18" width="12" height="12" rx="2" fill="var(--denim)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="18" y="18" width="12" height="12" rx="2" fill="var(--paper-dim)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="32" y="18" width="12" height="12" rx="2" fill="var(--paper-dim)" stroke="var(--ink)" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="ticket-tag">Word Game &middot; 5 Bands</div>
+        <h2>Shakedown Words</h2>
+        <p>Guess the lot term, song, or venue in a Wordle-style board. Phish, Dead, Panic, Goose &amp; STS9, all in the rotation.</p>
+        <span class="ticket-cta">Play now &rarr;</span>
+      </div>
+      <div class="ticket-stub"><span class="stub-no">No. 002</span></div>
+    </a>
+
+    <div class="ticket ticket-teaser">
+      <div class="ticket-main">
+        <div class="ticket-icon">
+          <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+            <path d="M8 30 L24 11 L40 30 Z" fill="var(--plum)" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M8 30 L40 30 L36 41 L12 41 Z" fill="var(--paper-dim)" stroke="var(--ink)" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="ticket-tag">???</div>
+        <h2>More on the way</h2>
+        <p>The lot's still filling in. New tiles land here as more games are ready to open the gates.</p>
+      </div>
+      <div class="ticket-stub"><span class="stub-no">No. 003</span></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>No actual nitrous. No actual miracles. Just games.</p>
+  </footer>
+</div>
+</body>
+</html>
